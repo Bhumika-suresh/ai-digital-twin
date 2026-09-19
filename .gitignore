@@ -27,3 +27,5 @@ data/*.csv
 # Misc
 download_data.py
 *.log
+
+.vercel

@@ -4,16 +4,21 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Textile Digital Twin & Eco-Intelligence System</title>
-  <meta name="description" content="AI-Powered Digital Twin for Sustainable Textile Manufacturing. Integrates real Mendeley weaving data, Machine Learning rejection prediction, SimPy discrete-event simulation, What-If scenarios, and Gemini 3.6 Flash AI.">
+  <meta name="description" content="AI-Powered Digital Twin for Sustainable Textile Manufacturing. Upload any CSV dataset, test Machine Learning rejection prediction, SimPy discrete-event simulation, and live Gemini AI copilot.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;600&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
   <link rel="stylesheet" href="css/style.css">
+  <!-- PapaParse for in-browser client-side CSV parsing -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
   <!-- Plotly.js for interactive analytics -->
   <script src="https://cdn.plot.ly/plotly-2.29.1.min.js"></script>
 </head>
 <body>
+
+  <!-- Hidden File Input for CSV Upload -->
+  <input type="file" id="csv-file-input" accept=".csv" style="display:none;">
 
   <div class="app-container">
     <!-- Header -->
@@ -27,17 +32,22 @@
           <div class="brand-subtitle">
             <span>AI-Driven Sustainable Manufacturing Platform</span>
             <span class="status-badge"><span class="pulse-dot"></span> Digital Twin Live</span>
-            <span class="status-badge" style="background:rgba(6,182,212,0.12); color:#06b6d4; border-color:rgba(6,182,212,0.3);"><i class="fa-solid fa-database"></i> Mendeley Dataset</span>
+            <span class="status-badge" id="header-dataset-badge" style="background:rgba(6,182,212,0.12); color:#06b6d4; border-color:rgba(6,182,212,0.3);"><i class="fa-solid fa-database"></i> Mendeley Dataset</span>
           </div>
         </div>
       </div>
       <div class="header-actions">
-        <button class="btn btn-secondary" onclick="window.print()">
-          <i class="fa-solid fa-file-arrow-down"></i> Export Report
+        <!-- Direct CSV Upload Button -->
+        <button class="btn btn-secondary" onclick="document.getElementById('csv-file-input').click()" title="Upload and analyze your custom textile CSV">
+          <i class="fa-solid fa-file-arrow-up" style="color:var(--accent-cyan);"></i> Upload CSV
         </button>
-        <a href="https://github.com" target="_blank" class="btn btn-secondary">
-          <i class="fa-brands fa-github"></i> Source Code
+        <!-- Gemini API Key Button with Status Indicator -->
+        <a href="javascript:void(0)" onclick="openGeminiModal()" id="header-gemini-pill" class="api-pill offline" title="Configure Google Gemini API Key">
+          <i class="fa-solid fa-key"></i> Gemini: Set Key
         </a>
+        <button class="btn btn-secondary" onclick="window.print()">
+          <i class="fa-solid fa-file-arrow-down"></i> Export
+        </button>
         <button class="btn btn-primary" onclick="runDiscreteEventSimulation()">
           <i class="fa-solid fa-rotate"></i> Re-Sync Twin
         </button>
@@ -101,7 +111,7 @@
           <div class="kpi-icon cyan"><i class="fa-solid fa-scroll"></i></div>
         </div>
         <div class="kpi-value">27,646 <span style="font-size:14px; font-weight:500; color:var(--text-secondary);">yds</span></div>
-        <div class="kpi-sub"><span class="trend-up"><i class="fa-solid fa-arrow-up"></i> +4.2%</span> vs last order batch</div>
+        <div class="kpi-sub"><span class="trend-up"><i class="fa-solid fa-arrow-up"></i> +4.2%</span> batch efficiency</div>
       </div>
 
       <div class="kpi-card rose">
@@ -152,13 +162,13 @@
 
     <!-- Navigation Tabs -->
     <nav class="tabs-nav" aria-label="Dashboard views">
-      <button class="tab-btn active" data-tab="tab-overview"><i class="fa-solid fa-chart-pie"></i> 1. Dataset & Analytics</button>
-      <button class="tab-btn" data-tab="tab-ml"><i class="fa-solid fa-brain"></i> 2. ML Prediction</button>
-      <button class="tab-btn" data-tab="tab-digital-twin"><i class="fa-solid fa-microchip"></i> 3. Digital Twin (SimPy)</button>
-      <button class="tab-btn" data-tab="tab-whatif"><i class="fa-solid fa-sliders"></i> 4. What-If Scenarios</button>
-      <button class="tab-btn" data-tab="tab-sustainability"><i class="fa-solid fa-seedling"></i> 5. Sustainability & Eco Score</button>
-      <button class="tab-btn" data-tab="tab-bottlenecks"><i class="fa-solid fa-triangle-exclamation"></i> 6. Bottlenecks & Actions</button>
-      <button class="tab-btn" data-tab="tab-gemini"><i class="fa-solid fa-wand-magic-sparkles"></i> 7. Gemini 3.6 Flash AI</button>
+      <button class="tab-btn active" data-tab="tab-overview" onclick="switchTab('tab-overview')"><i class="fa-solid fa-chart-pie"></i> 1. Dataset & Analytics</button>
+      <button class="tab-btn" data-tab="tab-ml" onclick="switchTab('tab-ml')"><i class="fa-solid fa-brain"></i> 2. ML Prediction</button>
+      <button class="tab-btn" data-tab="tab-digital-twin" onclick="switchTab('tab-digital-twin')"><i class="fa-solid fa-microchip"></i> 3. Digital Twin (SimPy)</button>
+      <button class="tab-btn" data-tab="tab-whatif" onclick="switchTab('tab-whatif')"><i class="fa-solid fa-sliders"></i> 4. What-If Scenarios</button>
+      <button class="tab-btn" data-tab="tab-sustainability" onclick="switchTab('tab-sustainability')"><i class="fa-solid fa-seedling"></i> 5. Sustainability & Eco Score</button>
+      <button class="tab-btn" data-tab="tab-bottlenecks" onclick="switchTab('tab-bottlenecks')"><i class="fa-solid fa-triangle-exclamation"></i> 6. Bottlenecks & Actions</button>
+      <button class="tab-btn" data-tab="tab-gemini" onclick="switchTab('tab-gemini')"><i class="fa-solid fa-wand-magic-sparkles"></i> 7. Gemini 3.6 Flash AI</button>
     </nav>
 
     <!-- ================= TAB 1: DATASET OVERVIEW ================= -->
@@ -166,14 +176,25 @@
       <div class="card-section">
         <div class="section-header">
           <div>
-            <h2 class="section-title"><i class="fa-solid fa-table-list" style="color:var(--accent-cyan);"></i> Mendeley Real Textile Weaving Dataset</h2>
-            <p class="section-subtitle">22,010 real production batches with yarn counts, loom speeds, and quality rejections.</p>
+            <h2 class="section-title"><i class="fa-solid fa-table-list" style="color:var(--accent-cyan);"></i> Textile Weaving Production Dataset</h2>
+            <p class="section-subtitle">Real Mendeley dataset active by default. You can upload any custom CSV to re-calibrate the digital twin instantly.</p>
           </div>
-          <div style="display:flex; gap:10px;">
-            <span class="badge badge-success"><i class="fa-solid fa-check"></i> Cleaned & Verified</span>
-            <span class="badge badge-warning">Target: Rejection (yds)</span>
+          <div style="display:flex; gap:10px; align-items:center;">
+            <button class="btn btn-primary" onclick="document.getElementById('csv-file-input').click()">
+              <i class="fa-solid fa-upload"></i> Upload CSV File
+            </button>
           </div>
         </div>
+
+        <!-- Interactive Drag & Drop CSV Dropzone -->
+        <div class="csv-dropzone" id="csv-dropzone" onclick="document.getElementById('csv-file-input').click()">
+          <div class="dropzone-icon"><i class="fa-solid fa-cloud-arrow-up"></i></div>
+          <div class="dropzone-title">Click to Browse or Drag & Drop Any Textile Dataset (.CSV)</div>
+          <div class="dropzone-sub">Accepts Mendeley, Kaggle, or custom factory CSV logs &bull; Automatically parses columns, recalculates KPIs, and re-trains ML models in the browser</div>
+        </div>
+
+        <!-- Status Notification Banner -->
+        <div id="csv-status-banner" style="display:none; margin-bottom:20px;"></div>
 
         <div class="table-container" style="margin-bottom:24px;">
           <table class="data-table">
@@ -190,7 +211,7 @@
               </tr>
             </thead>
             <tbody id="dataset-table-body">
-              <!-- Dynamically populated -->
+              <!-- Dynamically populated from state.currentData -->
             </tbody>
           </table>
         </div>
@@ -241,11 +262,6 @@
             <div class="form-group">
               <div class="form-label"><span>Weaving Shed Relative Humidity (%)</span> <span id="val-humidity" class="form-val">65 %</span></div>
               <input type="range" id="input-humidity" min="45" max="85" value="65" oninput="document.getElementById('val-humidity').innerText = this.value + ' %'; runMlPrediction();">
-            </div>
-
-            <div class="form-group">
-              <div class="form-label"><span>Ambient Temperature (°C)</span> <span id="val-temp" class="form-val">26 °C</span></div>
-              <input type="range" id="input-temp" min="18" max="38" value="26" oninput="document.getElementById('val-temp').innerText = this.value + ' °C'; runMlPrediction();">
             </div>
           </div>
 
@@ -523,8 +539,9 @@
             <p class="section-subtitle">Real-time LLM process intelligence assistant trained on factory state, ML predictions, and digital twin queues.</p>
           </div>
           <div style="display:flex; gap:10px; align-items:center;">
-            <input type="password" id="gemini-api-key" placeholder="Enter Gemini API Key (optional)" class="input-field" style="width:240px; font-size:11px;">
-            <button class="btn btn-secondary" onclick="saveGeminiKey()">Save Key</button>
+            <button class="btn btn-primary" onclick="openGeminiModal()">
+              <i class="fa-solid fa-key"></i> Configure Gemini API Key
+            </button>
           </div>
         </div>
 
@@ -577,6 +594,56 @@
         Engineered with Plotly.js, Vanilla CSS, SimPy Twin Logic & Gemini 3.6 Flash &bull; Deployed on Vercel
       </div>
     </footer>
+  </div>
+
+  <!-- ================= GEMINI API SETTINGS MODAL ================= -->
+  <div id="gemini-modal" class="modal-overlay">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 style="font-size:18px; color:var(--text-primary); display:flex; align-items:center; gap:8px;">
+          <i class="fa-solid fa-key" style="color:var(--accent-cyan);"></i> Google Gemini API Settings
+        </h3>
+        <button class="modal-close" onclick="closeGeminiModal()"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <p style="font-size:12px; color:var(--text-muted); margin-bottom:18px;">
+        Connect your personal Google Gemini API key to query Gemini 3.6 / 2.5 Flash live directly from the frontend. Key is stored safely in your local browser storage.
+      </p>
+
+      <div class="form-group">
+        <label class="form-label" style="margin-bottom:6px;">
+          <span>Google Gemini API Key:</span>
+          <a href="https://aistudio.google.com/app/apikey" target="_blank" style="color:var(--accent-cyan); font-size:11px; text-decoration:underline;">
+            Get Free API Key <i class="fa-solid fa-arrow-up-right-from-square"></i>
+          </a>
+        </label>
+        <input type="password" id="modal-gemini-key" placeholder="AIzaSy..." class="input-field mono" style="letter-spacing:1px;">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" style="margin-bottom:6px;"><span>Target Gemini Model:</span></label>
+        <select id="modal-gemini-model" class="input-field" style="cursor:pointer;">
+          <option value="gemini-2.5-flash">gemini-2.5-flash (Fast & Recommended)</option>
+          <option value="gemini-1.5-flash">gemini-1.5-flash</option>
+          <option value="gemini-1.5-pro">gemini-1.5-pro (High Reasoning)</option>
+          <option value="gemini-2.0-flash">gemini-2.0-flash</option>
+        </select>
+      </div>
+
+      <div id="modal-test-status" style="font-size:12px; margin-bottom:16px; min-height:18px;"></div>
+
+      <div style="display:flex; justify-content:space-between; align-items:center; gap:12px; margin-top:20px;">
+        <button class="btn btn-secondary" onclick="testGeminiConnection()">
+          <i class="fa-solid fa-vial"></i> Test Connection
+        </button>
+        <div style="display:flex; gap:10px;">
+          <button class="btn btn-secondary" onclick="closeGeminiModal()">Cancel</button>
+          <button class="btn btn-primary" onclick="saveGeminiModalSettings()">
+            <i class="fa-solid fa-floppy-disk"></i> Save & Connect
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 
   <script src="js/app.js"></script>
