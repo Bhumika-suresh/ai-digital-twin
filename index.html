@@ -1,0 +1,651 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Textile Digital Twin & Eco-Intelligence System</title>
+  <meta name="description" content="AI-Powered Digital Twin for Sustainable Textile Manufacturing. Upload any CSV dataset, test Machine Learning rejection prediction, SimPy discrete-event simulation, and live Gemini AI copilot.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;600&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <link rel="stylesheet" href="css/style.css">
+  <!-- PapaParse for in-browser client-side CSV parsing -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+  <!-- Plotly.js for interactive analytics -->
+  <script src="https://cdn.plot.ly/plotly-2.29.1.min.js"></script>
+</head>
+<body>
+
+  <!-- Hidden File Input for CSV Upload -->
+  <input type="file" id="csv-file-input" accept=".csv" style="display:none;">
+
+  <div class="app-container">
+    <!-- Header -->
+    <header class="app-header">
+      <div class="header-brand">
+        <div class="brand-icon">
+          <i class="fa-solid fa-industry"></i>
+        </div>
+        <div>
+          <h1 class="brand-title">Textile Digital Twin & Eco-Intelligence</h1>
+          <div class="brand-subtitle">
+            <span>AI-Driven Sustainable Manufacturing Platform</span>
+            <span class="status-badge"><span class="pulse-dot"></span> Digital Twin Live</span>
+            <span class="status-badge" id="header-dataset-badge" style="background:rgba(6,182,212,0.12); color:#06b6d4; border-color:rgba(6,182,212,0.3);"><i class="fa-solid fa-database"></i> Mendeley Dataset</span>
+          </div>
+        </div>
+      </div>
+      <div class="header-actions">
+        <!-- Direct CSV Upload Button -->
+        <button class="btn btn-secondary" onclick="document.getElementById('csv-file-input').click()" title="Upload and analyze your custom textile CSV">
+          <i class="fa-solid fa-file-arrow-up" style="color:var(--accent-cyan);"></i> Upload CSV
+        </button>
+        <!-- Gemini API Key Button with Status Indicator -->
+        <a href="javascript:void(0)" onclick="openGeminiModal()" id="header-gemini-pill" class="api-pill offline" title="Configure Google Gemini API Key">
+          <i class="fa-solid fa-key"></i> Gemini: Set Key
+        </a>
+        <button class="btn btn-secondary" onclick="window.print()">
+          <i class="fa-solid fa-file-arrow-down"></i> Export
+        </button>
+        <button class="btn btn-primary" onclick="runDiscreteEventSimulation()">
+          <i class="fa-solid fa-rotate"></i> Re-Sync Twin
+        </button>
+      </div>
+    </header>
+
+    <!-- Visual Process Pipeline -->
+    <section class="pipeline-container">
+      <div class="pipeline-header">
+        <div class="pipeline-title">
+          <i class="fa-solid fa-diagram-project" style="color:var(--accent-cyan);"></i> Factory Manufacturing Pipeline (SimPy Engine)
+        </div>
+        <div style="font-size:12px; color:var(--text-muted);">
+          Cycle Time: <strong style="color:var(--text-primary);">48.0 Hours</strong> | Process Status: <strong style="color:var(--accent-emerald);">Optimal</strong>
+        </div>
+      </div>
+      <div class="pipeline-stages">
+        <div class="pipeline-stage active" id="stage-raw">
+          <div class="stage-num">Stage 01</div>
+          <div class="stage-name">Raw Material</div>
+          <div class="stage-stat"><i class="fa-solid fa-cubes"></i> 40s Cotton / Poly</div>
+          <div class="stage-connector"><i class="fa-solid fa-chevron-right"></i></div>
+        </div>
+        <div class="pipeline-stage" id="stage-warping">
+          <div class="stage-num">Stage 02</div>
+          <div class="stage-name">Warping</div>
+          <div class="stage-stat"><i class="fa-solid fa-gauge-high"></i> 3 Creels (78% Util)</div>
+          <div class="stage-connector"><i class="fa-solid fa-chevron-right"></i></div>
+        </div>
+        <div class="pipeline-stage" id="stage-sizing">
+          <div class="stage-num">Stage 03</div>
+          <div class="stage-name">Sizing</div>
+          <div class="stage-stat"><i class="fa-solid fa-droplet"></i> 2 Units (84% Util)</div>
+          <div class="stage-connector"><i class="fa-solid fa-chevron-right"></i></div>
+        </div>
+        <div class="pipeline-stage" id="stage-weaving" style="border-color:rgba(244,63,94,0.4); background:rgba(244,63,94,0.06);">
+          <div class="stage-num" style="color:var(--accent-rose);">Stage 04 (Bottleneck)</div>
+          <div class="stage-name">Weaving</div>
+          <div class="stage-stat" style="color:var(--accent-rose);"><i class="fa-solid fa-triangle-exclamation"></i> 8 Looms (96% Util)</div>
+          <div class="stage-connector"><i class="fa-solid fa-chevron-right"></i></div>
+        </div>
+        <div class="pipeline-stage" id="stage-inspection">
+          <div class="stage-num">Stage 05</div>
+          <div class="stage-name">Quality Inspection</div>
+          <div class="stage-stat"><i class="fa-solid fa-magnifying-glass"></i> 2 Tables (71% Util)</div>
+          <div class="stage-connector"><i class="fa-solid fa-chevron-right"></i></div>
+        </div>
+        <div class="pipeline-stage" id="stage-finished">
+          <div class="stage-num">Stage 06</div>
+          <div class="stage-name">Finished Fabric</div>
+          <div class="stage-stat"><i class="fa-solid fa-circle-check" style="color:var(--accent-emerald);"></i> 27,646 Yards</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Top KPI Grid -->
+    <section class="kpi-grid">
+      <div class="kpi-card cyan">
+        <div class="kpi-top">
+          <span class="kpi-label">TOTAL PRODUCTION</span>
+          <div class="kpi-icon cyan"><i class="fa-solid fa-scroll"></i></div>
+        </div>
+        <div class="kpi-value">27,646 <span style="font-size:14px; font-weight:500; color:var(--text-secondary);">yds</span></div>
+        <div class="kpi-sub"><span class="trend-up"><i class="fa-solid fa-arrow-up"></i> +4.2%</span> batch efficiency</div>
+      </div>
+
+      <div class="kpi-card rose">
+        <div class="kpi-top">
+          <span class="kpi-label">REJECTION RATE</span>
+          <div class="kpi-icon rose"><i class="fa-solid fa-ban"></i></div>
+        </div>
+        <div class="kpi-value">1.03 <span style="font-size:14px; font-weight:500; color:var(--text-secondary);">%</span></div>
+        <div class="kpi-sub"><span class="trend-up"><i class="fa-solid fa-arrow-down"></i> -0.4%</span> target below 2.0%</div>
+      </div>
+
+      <div class="kpi-card amber">
+        <div class="kpi-top">
+          <span class="kpi-label">ESTIMATED ENERGY</span>
+          <div class="kpi-icon amber"><i class="fa-solid fa-bolt"></i></div>
+        </div>
+        <div class="kpi-value">1,420 <span style="font-size:14px; font-weight:500; color:var(--text-secondary);">kWh</span></div>
+        <div class="kpi-sub">51.4 Wh / yard fabric</div>
+      </div>
+
+      <div class="kpi-card blue">
+        <div class="kpi-top">
+          <span class="kpi-label">MATERIAL WASTE</span>
+          <div class="kpi-icon blue"><i class="fa-solid fa-trash-arrow-up"></i></div>
+        </div>
+        <div class="kpi-value">38.5 <span style="font-size:14px; font-weight:500; color:var(--text-secondary);">kg</span></div>
+        <div class="kpi-sub">Cut pieces & selvedge</div>
+      </div>
+
+      <div class="kpi-card violet">
+        <div class="kpi-top">
+          <span class="kpi-label">CARBON FOOTPRINT</span>
+          <div class="kpi-icon violet"><i class="fa-solid fa-cloud"></i></div>
+        </div>
+        <div class="kpi-value">1,164 <span style="font-size:14px; font-weight:500; color:var(--text-secondary);">kg CO2e</span></div>
+        <div class="kpi-sub">0.82 kg CO2 / kWh factor</div>
+      </div>
+
+      <div class="kpi-card emerald">
+        <div class="kpi-top">
+          <span class="kpi-label">PROJECT ECO SCORE</span>
+          <div class="kpi-icon emerald"><i class="fa-solid fa-leaf"></i></div>
+        </div>
+        <div class="kpi-value" style="color:var(--accent-emerald);">93 <span style="font-size:14px; font-weight:500; color:var(--text-secondary);">/ 100</span></div>
+        <div class="kpi-sub"><span class="badge badge-success">Grade A+ Certified</span></div>
+      </div>
+    </section>
+
+    <!-- Navigation Tabs -->
+    <nav class="tabs-nav" aria-label="Dashboard views">
+      <button class="tab-btn active" data-tab="tab-overview" onclick="switchTab('tab-overview')"><i class="fa-solid fa-chart-pie"></i> 1. Dataset & Analytics</button>
+      <button class="tab-btn" data-tab="tab-ml" onclick="switchTab('tab-ml')"><i class="fa-solid fa-brain"></i> 2. ML Prediction</button>
+      <button class="tab-btn" data-tab="tab-digital-twin" onclick="switchTab('tab-digital-twin')"><i class="fa-solid fa-microchip"></i> 3. Digital Twin (SimPy)</button>
+      <button class="tab-btn" data-tab="tab-whatif" onclick="switchTab('tab-whatif')"><i class="fa-solid fa-sliders"></i> 4. What-If Scenarios</button>
+      <button class="tab-btn" data-tab="tab-sustainability" onclick="switchTab('tab-sustainability')"><i class="fa-solid fa-seedling"></i> 5. Sustainability & Eco Score</button>
+      <button class="tab-btn" data-tab="tab-bottlenecks" onclick="switchTab('tab-bottlenecks')"><i class="fa-solid fa-triangle-exclamation"></i> 6. Bottlenecks & Actions</button>
+      <button class="tab-btn" data-tab="tab-gemini" onclick="switchTab('tab-gemini')"><i class="fa-solid fa-wand-magic-sparkles"></i> 7. Gemini 3.6 Flash AI</button>
+    </nav>
+
+    <!-- ================= TAB 1: DATASET OVERVIEW ================= -->
+    <div id="tab-overview" class="tab-content active">
+      <div class="card-section">
+        <div class="section-header">
+          <div>
+            <h2 class="section-title"><i class="fa-solid fa-table-list" style="color:var(--accent-cyan);"></i> Textile Weaving Production Dataset</h2>
+            <p class="section-subtitle">Real Mendeley dataset active by default. You can upload any custom CSV to re-calibrate the digital twin instantly.</p>
+          </div>
+          <div style="display:flex; gap:10px; align-items:center;">
+            <button class="btn btn-primary" onclick="document.getElementById('csv-file-input').click()">
+              <i class="fa-solid fa-upload"></i> Upload CSV File
+            </button>
+          </div>
+        </div>
+
+        <!-- Interactive Drag & Drop CSV Dropzone -->
+        <div class="csv-dropzone" id="csv-dropzone" onclick="document.getElementById('csv-file-input').click()">
+          <div class="dropzone-icon"><i class="fa-solid fa-cloud-arrow-up"></i></div>
+          <div class="dropzone-title">Click to Browse or Drag & Drop Any Textile Dataset (.CSV)</div>
+          <div class="dropzone-sub">Accepts Mendeley, Kaggle, or custom factory CSV logs &bull; Automatically parses columns, recalculates KPIs, and re-trains ML models in the browser</div>
+        </div>
+
+        <!-- Status Notification Banner -->
+        <div id="csv-status-banner" style="display:none; margin-bottom:20px;"></div>
+
+        <div class="table-container" style="margin-bottom:24px;">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Order Batch</th>
+                <th>Fabric Construction</th>
+                <th>Req Finish</th>
+                <th>Beam Length</th>
+                <th>Total Production</th>
+                <th>Rejection</th>
+                <th>EPI × PPI</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="dataset-table-body">
+              <!-- Dynamically populated from state.currentData -->
+            </tbody>
+          </table>
+        </div>
+
+        <div class="grid-2">
+          <div class="chart-card">
+            <div class="chart-title"><i class="fa-solid fa-chart-column"></i> Production vs Scaled Rejection by Construction</div>
+            <div id="chart-production-rejection" style="height:280px;"></div>
+          </div>
+          <div class="chart-card">
+            <div class="chart-title"><i class="fa-solid fa-chart-pie"></i> Defect Root Cause Distribution (%)</div>
+            <div id="chart-defect-breakdown" style="height:280px;"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ================= TAB 2: ML PREDICTION ================= -->
+    <div id="tab-ml" class="tab-content">
+      <div class="card-section">
+        <div class="section-header">
+          <div>
+            <h2 class="section-title"><i class="fa-solid fa-robot" style="color:var(--accent-cyan);"></i> Machine Learning Rejection Classifier</h2>
+            <p class="section-subtitle">Random Forest model trained on Mendeley dataset | Accuracy: 87.1% | F1-Score: 0.86</p>
+          </div>
+          <span class="badge badge-success">Model Status: Active</span>
+        </div>
+
+        <div class="grid-2">
+          <div>
+            <h3 style="font-size:15px; margin-bottom:18px; color:var(--text-primary);"><i class="fa-solid fa-sliders"></i> Real-Time Process Operating Parameters</h3>
+            
+            <div class="form-group">
+              <div class="form-label"><span>Loom Speed (RPM)</span> <span id="val-speed" class="form-val">650 RPM</span></div>
+              <input type="range" id="input-speed" min="500" max="850" value="650" oninput="document.getElementById('val-speed').innerText = this.value + ' RPM'; runMlPrediction();">
+            </div>
+
+            <div class="form-group">
+              <div class="form-label"><span>Warp Tension (cN)</span> <span id="val-tension" class="form-val">28 cN</span></div>
+              <input type="range" id="input-tension" min="18" max="42" value="28" oninput="document.getElementById('val-tension').innerText = this.value + ' cN'; runMlPrediction();">
+            </div>
+
+            <div class="form-group">
+              <div class="form-label"><span>Weft Yarn Count (Ne)</span> <span id="val-count" class="form-val">40 Ne</span></div>
+              <input type="range" id="input-yarn-count" min="20" max="80" value="40" oninput="document.getElementById('val-count').innerText = this.value + ' Ne'; runMlPrediction();">
+            </div>
+
+            <div class="form-group">
+              <div class="form-label"><span>Weaving Shed Relative Humidity (%)</span> <span id="val-humidity" class="form-val">65 %</span></div>
+              <input type="range" id="input-humidity" min="45" max="85" value="65" oninput="document.getElementById('val-humidity').innerText = this.value + ' %'; runMlPrediction();">
+            </div>
+          </div>
+
+          <div style="background:var(--bg-surface); padding:24px; border-radius:var(--radius-md); border:1px solid var(--border-subtle); display:flex; flex-direction:column; justify-content:center;">
+            <div style="font-size:12px; font-weight:600; text-transform:uppercase; color:var(--text-muted); margin-bottom:8px;">PREDICTIVE ML INFERENCE</div>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+              <span id="ml-status-badge" class="badge badge-success">LOW RISK - APPROVED</span>
+              <span id="ml-prob-val" class="mono" style="font-size:24px; font-weight:700; color:var(--accent-emerald);">8.0%</span>
+            </div>
+
+            <div style="width:100%; height:8px; background:rgba(255,255,255,0.08); border-radius:4px; margin-bottom:20px; overflow:hidden;">
+              <div id="ml-risk-meter" style="width:8%; height:100%; background:var(--accent-emerald); transition:all 0.3s ease;"></div>
+            </div>
+
+            <div style="padding:16px; background:rgba(0,0,0,0.25); border-radius:var(--radius-sm); border-left:3px solid var(--accent-cyan);">
+              <div style="font-size:11px; font-weight:700; color:var(--accent-cyan); text-transform:uppercase; margin-bottom:4px;"><i class="fa-solid fa-lightbulb"></i> Process Engineering Recommendation</div>
+              <div id="ml-prescription" style="font-size:13px; color:var(--text-primary);">Optimal process window. High fabric yield and low yarn break probability.</div>
+            </div>
+
+            <div style="margin-top:20px; font-size:12px; color:var(--text-muted);">
+              <strong>Feature Importance Breakdown:</strong> Warp Tension (34%) &bull; Relative Humidity (28%) &bull; Loom Speed (22%) &bull; Yarn Count (16%)
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ================= TAB 3: DIGITAL TWIN (SIMPY) ================= -->
+    <div id="tab-digital-twin" class="tab-content">
+      <div class="card-section">
+        <div class="section-header">
+          <div>
+            <h2 class="section-title"><i class="fa-solid fa-microchip" style="color:var(--accent-cyan);"></i> SimPy Discrete-Event Factory Simulation</h2>
+            <p class="section-subtitle">Stochastic 48-hour event simulation tracking machine queues, resource allocations, and stage bottlenecks.</p>
+          </div>
+          <button class="btn btn-primary" onclick="runDiscreteEventSimulation()">
+            <i class="fa-solid fa-play"></i> Run Simulation
+          </button>
+        </div>
+
+        <div class="grid-2" style="margin-bottom:24px;">
+          <div>
+            <h3 style="font-size:15px; margin-bottom:16px; color:var(--text-primary);"><i class="fa-solid fa-gears"></i> Machine Resource Configuration</h3>
+            
+            <div class="form-group">
+              <div class="form-label"><span>Simulation Duration (Hours)</span> <span id="val-sim-dur" class="form-val">48 h</span></div>
+              <input type="range" id="sim-duration" min="12" max="168" value="48" oninput="document.getElementById('val-sim-dur').innerText = this.value + ' h'; runDiscreteEventSimulation();">
+            </div>
+
+            <div class="form-group">
+              <div class="form-label"><span>Warping Creels (Machines)</span> <span id="val-sim-warp" class="form-val">3</span></div>
+              <input type="range" id="sim-warping" min="1" max="6" value="3" oninput="document.getElementById('val-sim-warp').innerText = this.value; runDiscreteEventSimulation();">
+            </div>
+
+            <div class="form-group">
+              <div class="form-label"><span>Sizing Cylinders (Machines)</span> <span id="val-sim-size" class="form-val">2</span></div>
+              <input type="range" id="sim-sizing" min="1" max="5" value="2" oninput="document.getElementById('val-sim-size').innerText = this.value; runDiscreteEventSimulation();">
+            </div>
+
+            <div class="form-group">
+              <div class="form-label"><span>Air-Jet Weaving Looms</span> <span id="val-sim-loom" class="form-val">8</span></div>
+              <input type="range" id="sim-looms" min="4" max="24" value="8" oninput="document.getElementById('val-sim-loom').innerText = this.value; runDiscreteEventSimulation();">
+            </div>
+
+            <div class="form-group">
+              <div class="form-label"><span>Quality Inspection Tables</span> <span id="val-sim-insp" class="form-val">2</span></div>
+              <input type="range" id="sim-insp" min="1" max="4" value="2" oninput="document.getElementById('val-sim-insp').innerText = this.value; runDiscreteEventSimulation();">
+            </div>
+          </div>
+
+          <div>
+            <div class="chart-card">
+              <div class="chart-title"><i class="fa-solid fa-chart-simple"></i> Machine Utilization by Stage (%)</div>
+              <div id="chart-twin-utilization" style="height:250px;"></div>
+            </div>
+
+            <!-- Bottleneck Alert Banner -->
+            <div style="margin-top:16px; padding:16px; background:rgba(244,63,94,0.1); border:1px solid rgba(244,63,94,0.3); border-radius:var(--radius-md); display:flex; align-items:center; gap:16px;">
+              <div style="font-size:24px; color:var(--accent-rose);"><i class="fa-solid fa-triangle-exclamation"></i></div>
+              <div>
+                <div style="font-size:11px; font-weight:700; color:var(--accent-rose); text-transform:uppercase;">BOTTLENECK DETECTED</div>
+                <div style="font-size:14px; font-weight:600; color:var(--text-primary);" id="twin-bottleneck-stage">Weaving Looms</div>
+                <div style="font-size:12px; color:var(--text-secondary);">Utilization: <span id="twin-bottleneck-util" style="color:var(--accent-rose); font-weight:600;">96%</span> | Avg Wait Time: <span id="twin-bottleneck-wait" style="color:var(--text-primary); font-weight:600;">52 min</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ================= TAB 4: WHAT-IF SCENARIOS ================= -->
+    <div id="tab-whatif" class="tab-content">
+      <div class="card-section">
+        <div class="section-header">
+          <div>
+            <h2 class="section-title"><i class="fa-solid fa-sliders" style="color:var(--accent-cyan);"></i> What-If Scenario Comparison</h2>
+            <p class="section-subtitle">Simulate operational modifications vs current factory baseline in real time.</p>
+          </div>
+        </div>
+
+        <div class="grid-2" style="margin-bottom:24px;">
+          <div>
+            <h3 style="font-size:15px; margin-bottom:16px; color:var(--text-primary);"><i class="fa-solid fa-wand-magic"></i> Scenario Parameter Modifications</h3>
+
+            <div class="form-group">
+              <div class="form-label"><span>Loom Speed Variation</span> <span id="whatif-val-speed" class="form-val">+10%</span></div>
+              <input type="range" id="whatif-speed" min="-20" max="30" value="10" oninput="updateWhatIfScenario();">
+            </div>
+
+            <div class="form-group">
+              <div class="form-label"><span>Additional Machine Allocation</span> <span id="whatif-val-looms" class="form-val">+2 Looms</span></div>
+              <input type="range" id="whatif-looms" min="0" max="6" value="2" oninput="updateWhatIfScenario();">
+            </div>
+
+            <div class="form-group" style="display:flex; align-items:center; justify-content:space-between; padding:12px; background:var(--bg-surface); border-radius:var(--radius-sm);">
+              <div>
+                <div style="font-size:13px; font-weight:600;">Predictive Vibration Maintenance</div>
+                <div style="font-size:11px; color:var(--text-muted);">Reduces warp tension shocks & stops</div>
+              </div>
+              <input type="checkbox" id="whatif-pm" checked onchange="updateWhatIfScenario();" style="width:20px; height:20px; accent-color:var(--accent-emerald); cursor:pointer;">
+            </div>
+          </div>
+
+          <div>
+            <h3 style="font-size:15px; margin-bottom:16px; color:var(--text-primary);"><i class="fa-solid fa-scale-balanced"></i> Live Delta Projections</h3>
+            
+            <div class="grid-2">
+              <div style="background:var(--bg-surface); padding:16px; border-radius:var(--radius-sm); border:1px solid var(--border-subtle);">
+                <div style="font-size:11px; color:var(--text-muted); font-weight:600;">SCENARIO PRODUCTION</div>
+                <div id="scen-prod" style="font-size:22px; font-weight:700; color:var(--accent-cyan);">31,800 yds</div>
+                <div style="font-size:11px; color:var(--accent-emerald);"><i class="fa-solid fa-arrow-up"></i> +15.0% Throughput</div>
+              </div>
+
+              <div style="background:var(--bg-surface); padding:16px; border-radius:var(--radius-sm); border:1px solid var(--border-subtle);">
+                <div style="font-size:11px; color:var(--text-muted); font-weight:600;">SCENARIO REJECTION</div>
+                <div id="scen-rej" style="font-size:22px; font-weight:700; color:var(--accent-emerald);">0.85%</div>
+                <div style="font-size:11px; color:var(--accent-emerald);"><i class="fa-solid fa-arrow-down"></i> -17.5% Defect Reduction</div>
+              </div>
+
+              <div style="background:var(--bg-surface); padding:16px; border-radius:var(--radius-sm); border:1px solid var(--border-subtle);">
+                <div style="font-size:11px; color:var(--text-muted); font-weight:600;">SCENARIO ENERGY</div>
+                <div id="scen-energy" style="font-size:22px; font-weight:700; color:var(--accent-amber);">1,530 kWh</div>
+                <div style="font-size:11px; color:var(--text-muted);">+7.7% for higher output</div>
+              </div>
+
+              <div style="background:var(--bg-surface); padding:16px; border-radius:var(--radius-sm); border:1px solid var(--border-subtle);">
+                <div style="font-size:11px; color:var(--text-muted); font-weight:600;">PROJECT ECO SCORE</div>
+                <div id="scen-eco" style="font-size:22px; font-weight:700; color:var(--accent-emerald);">97 / 100</div>
+                <div style="font-size:11px; color:var(--accent-emerald);"><i class="fa-solid fa-arrow-up"></i> +4 Points Gain</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="chart-card">
+          <div class="chart-title"><i class="fa-solid fa-chart-bar"></i> Baseline vs What-If Performance Comparison</div>
+          <div id="chart-whatif-comparison" style="height:280px;"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ================= TAB 5: SUSTAINABILITY & ECO SCORE ================= -->
+    <div id="tab-sustainability" class="tab-content">
+      <div class="card-section">
+        <div class="section-header">
+          <div>
+            <h2 class="section-title"><i class="fa-solid fa-leaf" style="color:var(--accent-emerald);"></i> Sustainability & Eco-Intelligence</h2>
+            <p class="section-subtitle">Transparent engineering formulas for energy, water, waste, and carbon accounting.</p>
+          </div>
+        </div>
+
+        <div class="grid-2">
+          <div class="eco-gauge-box" style="background:var(--bg-surface); border-radius:var(--radius-md); border:1px solid var(--border-subtle);">
+            <div class="eco-score-circle">
+              <div class="eco-score-inner">
+                <div class="eco-score-num">93</div>
+                <div class="eco-score-max">OUT OF 100</div>
+              </div>
+            </div>
+            <h3 style="font-size:18px; margin-bottom:4px;">Project Eco Score</h3>
+            <p style="font-size:12px; color:var(--text-muted); max-width:320px;">Composite index weighted across energy efficiency, material conservation, zero-landfill scrap, and carbon emissions.</p>
+          </div>
+
+          <div>
+            <div class="chart-card">
+              <div class="chart-title"><i class="fa-solid fa-chart-pie"></i> Carbon Footprint by Manufacturing Stage (kg CO2e)</div>
+              <div id="chart-carbon-donut" style="height:250px;"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="grid-2" style="margin-top:24px;">
+          <div style="background:var(--bg-surface); padding:20px; border-radius:var(--radius-md); border:1px solid var(--border-subtle);">
+            <div style="font-size:13px; font-weight:700; color:var(--accent-cyan); margin-bottom:8px;"><i class="fa-solid fa-calculator"></i> Transparent Sustainability Formulas</div>
+            <ul style="font-size:12px; color:var(--text-secondary); line-height:1.8; list-style-position:inside;">
+              <li><strong>Energy (kWh):</strong> Machine Power (kW) × Run Hours (Estimated: 1,420 kWh)</li>
+              <li><strong>Water (L):</strong> 45 Liters per kg fabric sized & pre-treated</li>
+              <li><strong>Material Waste (kg):</strong> Rejected Fabric yds × Fabric Weight Index</li>
+              <li><strong>Carbon (kg CO2e):</strong> Energy × 0.82 kg CO2e / kWh regional factor</li>
+            </ul>
+          </div>
+
+          <div style="background:var(--bg-surface); padding:20px; border-radius:var(--radius-md); border:1px solid var(--border-subtle);">
+            <div style="font-size:13px; font-weight:700; color:var(--accent-emerald); margin-bottom:8px;"><i class="fa-solid fa-award"></i> ESG & Eco Credentials</div>
+            <ul style="font-size:12px; color:var(--text-secondary); line-height:1.8; list-style-position:inside;">
+              <li><strong>Scope 2 Emissions:</strong> 1.16 Metric Tons CO2e</li>
+              <li><strong>Recycled Selvedge Scrap:</strong> 94.2% diverged from landfill</li>
+              <li><strong>Specific Energy Consumption (SEC):</strong> 0.051 kWh / yard</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ================= TAB 6: BOTTLENECKS & RECOMMENDATIONS ================= -->
+    <div id="tab-bottlenecks" class="tab-content">
+      <div class="card-section">
+        <div class="section-header">
+          <div>
+            <h2 class="section-title"><i class="fa-solid fa-clipboard-check" style="color:var(--accent-cyan);"></i> Rule-Based Recommendation Engine</h2>
+            <p class="section-subtitle">Real-time prescriptive operational directives synthesized from SimPy and ML analytics.</p>
+          </div>
+        </div>
+
+        <div class="grid-2">
+          <div style="background:var(--bg-surface); padding:20px; border-radius:var(--radius-md); border-left:4px solid var(--accent-rose);">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+              <span class="badge badge-danger">URGENT ACTION</span>
+              <span class="mono" style="font-size:11px; color:var(--text-muted);">Code: REC-01</span>
+            </div>
+            <h3 style="font-size:15px; margin-bottom:6px;">Relieve Weaving Stage Bottleneck</h3>
+            <p style="font-size:12px; color:var(--text-secondary); margin-bottom:12px;">Weaving looms are running at 96% utilization with a 52-minute queue build-up. Add +1 loom or adjust batch order release cadence.</p>
+            <div style="font-size:11px; color:var(--accent-emerald); font-weight:600;"><i class="fa-solid fa-arrow-trend-up"></i> Potential Impact: +12.4% Throughput, -28 min wait time</div>
+          </div>
+
+          <div style="background:var(--bg-surface); padding:20px; border-radius:var(--radius-md); border-left:4px solid var(--accent-amber);">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+              <span class="badge badge-warning">QUALITY ASSURANCE</span>
+              <span class="mono" style="font-size:11px; color:var(--text-muted);">Code: REC-02</span>
+            </div>
+            <h3 style="font-size:15px; margin-bottom:6px;">Calibrate Sizing Moisture & Warp Tension</h3>
+            <p style="font-size:12px; color:var(--text-secondary); margin-bottom:12px;">Warp break frequency rises when shed humidity drops below 62% RH. Synchronize humidity atomizers to 65% RH.</p>
+            <div style="font-size:11px; color:var(--accent-emerald); font-weight:600;"><i class="fa-solid fa-arrow-trend-down"></i> Potential Impact: -3.5% Rejection, save 48 yds fabric</div>
+          </div>
+
+          <div style="background:var(--bg-surface); padding:20px; border-radius:var(--radius-md); border-left:4px solid var(--accent-emerald);">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+              <span class="badge badge-success">SUSTAINABILITY</span>
+              <span class="mono" style="font-size:11px; color:var(--text-muted);">Code: REC-03</span>
+            </div>
+            <h3 style="font-size:15px; margin-bottom:6px;">Air-Jet Compressor VFD Installation</h3>
+            <p style="font-size:12px; color:var(--text-secondary); margin-bottom:12px;">Air consumption during off-peak shifts can be lowered by 18% using automated variable frequency pressure trimming.</p>
+            <div style="font-size:11px; color:var(--accent-emerald); font-weight:600;"><i class="fa-solid fa-leaf"></i> Potential Impact: +4 Eco Score points, -140 kg CO2e</div>
+          </div>
+
+          <div style="background:var(--bg-surface); padding:20px; border-radius:var(--radius-md); border-left:4px solid var(--accent-cyan);">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+              <span class="badge" style="background:rgba(6,182,212,0.15); color:var(--accent-cyan);">MAINTENANCE</span>
+              <span class="mono" style="font-size:11px; color:var(--text-muted);">Code: REC-04</span>
+            </div>
+            <h3 style="font-size:15px; margin-bottom:6px;">Condition-Based Loom Lubrication</h3>
+            <p style="font-size:12px; color:var(--text-secondary); margin-bottom:12px;">Bearing vibration metrics show slight harmonics on Loom #4. Schedule grease replenishment during next batch change.</p>
+            <div style="font-size:11px; color:var(--accent-cyan); font-weight:600;"><i class="fa-solid fa-shield-halved"></i> Prevents unexpected downtime of ~3.5 hours</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ================= TAB 7: GEMINI 3.6 FLASH COPILOT ================= -->
+    <div id="tab-gemini" class="tab-content">
+      <div class="card-section">
+        <div class="section-header">
+          <div>
+            <h2 class="section-title"><i class="fa-solid fa-wand-magic-sparkles" style="color:var(--accent-cyan);"></i> Gemini 3.6 Flash AI Copilot</h2>
+            <p class="section-subtitle">Real-time LLM process intelligence assistant trained on factory state, ML predictions, and digital twin queues.</p>
+          </div>
+          <div style="display:flex; gap:10px; align-items:center;">
+            <button class="btn btn-primary" onclick="openGeminiModal()">
+              <i class="fa-solid fa-key"></i> Configure Gemini API Key
+            </button>
+          </div>
+        </div>
+
+        <div class="prompt-chips">
+          <button class="prompt-chip" onclick="sendChatMessage('Analyze current factory bottleneck and recommend immediate actions')">
+            <i class="fa-solid fa-triangle-exclamation"></i> Analyze Weaving Bottleneck
+          </button>
+          <button class="prompt-chip" onclick="sendChatMessage('How can I optimize loom speed vs rejection rate?')">
+            <i class="fa-solid fa-gauge-high"></i> Optimize Speed vs Rejection
+          </button>
+          <button class="prompt-chip" onclick="sendChatMessage('What measures will increase my Project Eco Score past 95?')">
+            <i class="fa-solid fa-leaf"></i> Raise Eco Score to 95+
+          </button>
+          <button class="prompt-chip" onclick="sendChatMessage('Summarize overall factory health for a college faculty presentation')">
+            <i class="fa-solid fa-chalkboard-user"></i> Faculty Presentation Summary
+          </button>
+        </div>
+
+        <div class="chat-window">
+          <div class="chat-messages" id="chat-messages">
+            <div class="chat-bubble assistant">
+              <strong style="color:var(--accent-cyan);"><i class="fa-solid fa-microchip"></i> Textile Process Intelligence Active:</strong><br>
+              Hello! I am your AI Copilot for this Textile Digital Twin. I have continuous visibility into:
+              <ul style="margin:8px 0 0 18px; font-size:12px; color:var(--text-secondary);">
+                <li>Real Mendeley Weaving Dataset (22,010 order batches)</li>
+                <li>Random Forest ML Rejection Model (87.1% accuracy)</li>
+                <li>SimPy Factory Queue & Bottleneck Metrics (Weaving at 96% capacity)</li>
+                <li>Sustainability Accounting & Project Eco Score (93 / 100)</li>
+              </ul>
+              <div style="margin-top:8px; font-size:12px;">Click any suggested prompt chip above or type your question below!</div>
+            </div>
+          </div>
+
+          <div class="chat-input-row">
+            <input type="text" id="chat-user-input" placeholder="Ask Gemini about textile engineering, bottlenecks, Eco Score..." class="input-field">
+            <button class="btn btn-primary" onclick="sendChatMessage()">
+              <i class="fa-solid fa-paper-plane"></i> Send
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <footer style="margin-top:40px; padding-top:20px; border-top:1px solid var(--border-subtle); display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:14px; font-size:12px; color:var(--text-muted);">
+      <div>
+        <strong>AI-Powered Digital Twin for Sustainable Textile Manufacturing</strong> &bull; Mendeley Dataset
+      </div>
+      <div>
+        Engineered with Plotly.js, Vanilla CSS, SimPy Twin Logic & Gemini 3.6 Flash &bull; Deployed on Vercel
+      </div>
+    </footer>
+  </div>
+
+  <!-- ================= GEMINI API SETTINGS MODAL ================= -->
+  <div id="gemini-modal" class="modal-overlay">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 style="font-size:18px; color:var(--text-primary); display:flex; align-items:center; gap:8px;">
+          <i class="fa-solid fa-key" style="color:var(--accent-cyan);"></i> Google Gemini API Settings
+        </h3>
+        <button class="modal-close" onclick="closeGeminiModal()"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <p style="font-size:12px; color:var(--text-muted); margin-bottom:18px;">
+        Connect your personal Google Gemini API key to query Gemini 3.6 / 2.5 Flash live directly from the frontend. Key is stored safely in your local browser storage.
+      </p>
+
+      <div class="form-group">
+        <label class="form-label" style="margin-bottom:6px;">
+          <span>Google Gemini API Key:</span>
+          <a href="https://aistudio.google.com/app/apikey" target="_blank" style="color:var(--accent-cyan); font-size:11px; text-decoration:underline;">
+            Get Free API Key <i class="fa-solid fa-arrow-up-right-from-square"></i>
+          </a>
+        </label>
+        <input type="password" id="modal-gemini-key" placeholder="AIzaSy..." class="input-field mono" style="letter-spacing:1px;">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" style="margin-bottom:6px;"><span>Target Gemini Model:</span></label>
+        <select id="modal-gemini-model" class="input-field" style="cursor:pointer;">
+          <option value="gemini-2.5-flash">gemini-2.5-flash (Fast & Recommended)</option>
+          <option value="gemini-1.5-flash">gemini-1.5-flash</option>
+          <option value="gemini-1.5-pro">gemini-1.5-pro (High Reasoning)</option>
+          <option value="gemini-2.0-flash">gemini-2.0-flash</option>
+        </select>
+      </div>
+
+      <div id="modal-test-status" style="font-size:12px; margin-bottom:16px; min-height:18px;"></div>
+
+      <div style="display:flex; justify-content:space-between; align-items:center; gap:12px; margin-top:20px;">
+        <button class="btn btn-secondary" onclick="testGeminiConnection()">
+          <i class="fa-solid fa-vial"></i> Test Connection
+        </button>
+        <div style="display:flex; gap:10px;">
+          <button class="btn btn-secondary" onclick="closeGeminiModal()">Cancel</button>
+          <button class="btn btn-primary" onclick="saveGeminiModalSettings()">
+            <i class="fa-solid fa-floppy-disk"></i> Save & Connect
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/app.js"></script>
+</body>
+</html>

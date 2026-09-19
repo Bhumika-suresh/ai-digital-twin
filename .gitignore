@@ -1,0 +1,31 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+venv/
+.env/
+env/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Models (regenerated on each run)
+models/*.joblib
+
+# Data files (too large for git — download via script)
+data/*.csv
+
+# Misc
+download_data.py
+*.log
+
+.vercel
