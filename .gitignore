@@ -7,7 +7,22 @@ __pycache__/
 venv/
 .env/
 env/
+.venv/
+.venv-1/
+venv/
+env/
 
+__pycache__/
+*.py[cod]
+
+.ipynb_checkpoints/
+
+.env
+*.env
+
+.vscode/
+
+*.log
 # IDE
 .vscode/
 .idea/
