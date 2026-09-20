@@ -6,64 +6,69 @@ from src.digital_twin import TextileFactoryDigitalTwin
 from src.sustainability import calculate_sustainability_metrics
 from src.recommendations import detect_bottlenecks, generate_recommendations
 from src.gemini_assistant import query_gemini_process_intelligence
+"""End-to-end checks for the textile intelligence pipeline."""
 
-print("--- TEST 1: DATA PREPROCESSING ---")
-df_raw = load_data()
-df_clean = clean_and_preprocess(df_raw)
-summary = get_dataset_summary(df_clean)
-print("Dataset Shape:", df_clean.shape)
-print(f"Summary Rows: {summary['rows']}, Cols: {summary['cols']}, Rejection Rate: {summary['rejection_rate']:.2f}%")
+from src.data_preprocessing import clean_and_preprocess, get_dataset_summary, load_data
+from src.digital_twin import TextileFactoryDigitalTwin
+from src.ml_model import TextileMLSystem
+from src.recommendations import detect_bottlenecks, generate_recommendations
+from src.sustainability import calculate_sustainability_metrics
 
-print("\n--- TEST 2: ML MODEL TRAINING & PREDICTION ---")
-ml = TextileMLSystem()
-clf_m, reg_m = ml.train_models(df_clean)
-print(f"Classification Accuracy: {clf_m['accuracy']*100:.2f}%, F1: {clf_m['f1']:.3f}")
-print(f"Regression R2: {reg_m['r2']:.3f}, MAE: {reg_m['mae']:.2f}")
-sample_input = {
-    'epi': 110,
-    'ppi': 80,
-    'weft_count': 40,
-    'warp_count_num': 40,
-    'Fabric_Allowance': 5.0,
-    'Shrink_allow': 3.0,
-    'Req_Finish_Fabrics': 10000,
-    'Rec_Beam_length(yds)': 10500,
-    'Req_beam_length(yds)': 10500,
-    'Req_grey_fabric': 10300,
-    'warp_cover_factor': 17.39,
-    'weft_cover_factor': 12.65,
-    'total_fabric_density': 190
-}
-pred = ml.predict_single(sample_input)
-print("Sample Live Prediction:", pred)
 
-print("\n--- TEST 3: SIMPY DIGITAL TWIN ---")
-twin = TextileFactoryDigitalTwin(sim_duration_hours=24.0)
-sim_res = twin.run()
-print(f"Sim Total Completed Yds: {sim_res['completed_yds']}, Rejected Yds: {sim_res['rejected_yds']}, Throughput: {sim_res['throughput_yds_per_hr']} yds/hr")
+def test_end_to_end_pipeline():
+    raw = load_data()
+    clean = clean_and_preprocess(raw)
+    summary = get_dataset_summary(clean)
+    prep = summary["preprocessing_summary"]
 
-print("\n--- TEST 4: SUSTAINABILITY & ECO SCORE ---")
-sust = calculate_sustainability_metrics(sim_res)
-print(f"Total Energy kWh: {sust['total_energy_kwh']}, Total Waste kg: {sust['total_waste_kg']}, Eco Score: {sust['eco_score']}/100")
+    assert len(raw) == prep["original_rows"]
+    assert len(clean) == prep["final_rows"]
+    assert prep["aggregate_rows_removed"] > 0
+    assert not any(clean[column].astype("string").str.upper().eq("TOTAL").any() for column in clean.select_dtypes(include=["object", "string"]).columns)
 
-print("\n--- TEST 5: BOTTLENECK & RECOMMENDATIONS ---")
-bn = detect_bottlenecks(sim_res)
-recs = generate_recommendations(sim_res, sust)
-print(f"Bottleneck: {bn['stage']}, Util: {bn['utilization_pct']}%, Severity: {bn['severity']}")
-print(f"Generated Recommendations Count: {len(recs)}")
+    ml = TextileMLSystem()
+    clf_metrics, reg_metrics = ml.train_models(clean, dataset_name="weaving_dataset_full.csv")
+    assert ml.is_trained
+    assert clf_metrics["confusion_matrix"]
+    assert {"mae", "rmse", "r2"}.issubset(reg_metrics)
+    assert "Rec_Beam_length(yds)" not in ml.feature_names
 
-print("\n--- TEST 6: GEMINI 2.0 FLASH ASSISTANT ---")
-ai_resp = query_gemini_process_intelligence(
-    "Analyze bottlenecks and suggest eco optimizations",
-    {
-        'bottleneck_stage': bn['stage'],
-        'bottleneck_util': bn['utilization_pct'],
-        'completed_yds': sim_res['completed_yds'],
-        'rejection_rate_pct': sim_res['rejection_rate_pct'],
-        'total_energy_kwh': sust['total_energy_kwh'],
-        'eco_score': sust['eco_score']
-    }
-)
-print("AI Response Preview:\n", ai_resp[:250])
+    prediction = ml.predict_single({"epi": 110, "ppi": 80, "weft_count": 80, "warp_count_num": 40})
+    assert "rejection_probability" in prediction
+    assert "predicted_production_yds" in prediction
 
-print("\n>>> ALL CORE TESTS PASSED WITH 100% SUCCESS! <<<")
+    reloaded = TextileMLSystem()
+    assert reloaded.load_models("weaving_dataset_full.csv", ml.metadata["dataset_fingerprint"])
+    assert "predicted_production_yds" in reloaded.predict_single({"epi": 110, "ppi": 80})
+
+    baseline = TextileFactoryDigitalTwin(sim_duration_hours=12.0, random_seed=42).run()
+    what_if = TextileFactoryDigitalTwin(
+        sim_duration_hours=12.0, weaving_machines=8, defect_prob=0.04, random_seed=42
+    ).run()
+    baseline_sustainability = calculate_sustainability_metrics(baseline)
+    what_if_sustainability = calculate_sustainability_metrics(what_if)
+    assert baseline["stage_metrics"]
+    assert what_if["completed_yds"] >= 0
+    assert 0 <= baseline_sustainability["eco_score"] <= 100
+    assert 0 <= what_if_sustainability["eco_score"] <= 100
+
+    bottleneck = detect_bottlenecks(baseline)
+    recommendations = generate_recommendations(
+        baseline,
+        baseline_sustainability,
+        ml_context=prediction,
+        feature_importances=ml.feature_importances_clf,
+    )
+    assert bottleneck and bottleneck["stage"] in baseline["stage_metrics"]
+    assert recommendations
+    assert all("supporting_metric" in recommendation for recommendation in recommendations)
+
+    print("End-to-end pipeline checks passed.")
+    print(f"Raw rows: {len(raw):,}; analytical rows: {len(clean):,}")
+    print(f"Classification metrics: {clf_metrics}")
+    print(f"Regression metrics: {reg_metrics}")
+    print(f"Eco Score: {baseline_sustainability['eco_score']}/100")
+
+
+if __name__ == "__main__":
+    test_end_to_end_pipeline()

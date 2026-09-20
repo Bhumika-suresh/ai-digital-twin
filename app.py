@@ -473,7 +473,7 @@ with st.sidebar:
         selected_file = st.selectbox(
             "Select CSV Dataset:",
             avail_datasets,
-            index=0,
+            index=avail_datasets.index("weaving_dataset_full.csv") if "weaving_dataset_full.csv" in avail_datasets else 0,
             help="Real dataset from Mendeley stored in data/",
         )
         data_path = os.path.join(
@@ -682,7 +682,7 @@ with tab_eda:
             <div class="stat-pill">📋 <strong>{summary_info['rows']:,}</strong> Records</div>
             <div class="stat-pill">📐 <strong>{summary_info['cols']}</strong> Columns</div>
             <div class="stat-pill">🔧 <strong>{summary_info['missing_cells']:,}</strong> Missing Handled</div>
-            <div class="stat-pill">🗑️ <strong>{summary_info['duplicate_rows']:,}</strong> Duplicates Removed</div>
+            <div class="stat-pill">🗑️ <strong>{summary_info.get('preprocessing_summary', {}).get('duplicates_removed', 0):,}</strong> Duplicates Removed</div>
         </div>
         """,
         unsafe_allow_html=True,
@@ -690,6 +690,20 @@ with tab_eda:
 
     st.markdown("#### 🔍 Dataset Preview")
     st.dataframe(df_clean.head(10), use_container_width=True)
+
+    prep = summary_info.get("preprocessing_summary", {})
+    with st.expander("Preprocessing audit trail"):
+        st.write(
+            f"{prep.get('original_rows', len(df_raw)):,} original rows → "
+            f"{prep.get('aggregate_rows_removed', 0):,} aggregate rows removed → "
+            f"{prep.get('duplicates_removed', 0):,} exact duplicates removed → "
+            f"{prep.get('final_rows', len(df_clean)):,} final analytical rows."
+        )
+        st.caption(
+            f"Index columns removed: {prep.get('index_columns_removed', 0)}. "
+            f"Missing sentinels normalized: {prep.get('missing_values_normalized', 0):,}; "
+            f"invalid rows removed: {prep.get('invalid_rows_removed', 0):,}."
+        )
 
     col_c1, col_c2 = st.columns(2)
 
@@ -739,21 +753,51 @@ with tab_ml:
     st.subheader("🤖 Scikit-Learn Predictive Model")
     st.markdown("Trains **RandomForestClassifier** (rejection) and **RandomForestRegressor** (production) on the real dataset.")
 
-    if "ml_system" not in st.session_state:
+    if (
+        "ml_system" not in st.session_state
+        or not hasattr(st.session_state["ml_system"], "dataset_fingerprint")
+        or not hasattr(st.session_state["ml_system"], "metadata")
+    ):
         st.session_state["ml_system"] = TextileMLSystem()
 
     ml_sys = st.session_state["ml_system"]
+    dataset_label = selected_file if avail_datasets else getattr(uploaded_file, "name", "Custom CSV")
+    current_fingerprint = TextileMLSystem.dataset_fingerprint(df_clean)
+    if (
+        ml_sys.metadata.get("dataset_fingerprint") != current_fingerprint
+        or ml_sys.metadata.get("dataset_name") != dataset_label
+    ):
+        ml_sys = TextileMLSystem()
+        st.session_state["ml_system"] = ml_sys
 
     col_btn, col_st = st.columns([1, 3])
+    training_error = None
     with col_btn:
         if st.button("🚀 Train / Re-train Models", type="primary", use_container_width=True):
             with st.spinner("Training on real dataset..."):
-                clf_m, reg_m = ml_sys.train_models(df_clean)
-                st.success("Models trained!")
+                try:
+                    ml_sys.train_models(df_clean, dataset_name=dataset_label)
+                    st.success("Models trained!")
+                except ValueError as exc:
+                    ml_sys.is_trained = False
+                    training_error = str(exc)
 
     if not ml_sys.is_trained:
         with st.spinner("Initializing ML model..."):
-            ml_sys.train_models(df_clean)
+            try:
+                ml_sys.train_models(df_clean, dataset_name=dataset_label)
+            except ValueError as exc:
+                ml_sys.is_trained = False
+                training_error = str(exc)
+
+    if training_error:
+        st.warning(f"Model training is unavailable for this dataset: {training_error}")
+
+    st.caption(
+        f"Model dataset: {ml_sys.metadata.get('dataset_name', dataset_label)} | "
+        f"Trained: {ml_sys.metadata.get('training_timestamp_utc', 'current run')} | "
+        f"Preprocessing: {ml_sys.metadata.get('preprocessing_version', 'unknown')}"
+    )
 
     st.markdown("---")
     col_m1, col_m2 = st.columns(2)
@@ -833,13 +877,24 @@ with tab_ml:
         "total_fabric_density": inp_epi + inp_ppi,
     }
 
-    pred_res = ml_sys.predict_single(input_sample)
+    pred_res = (
+        ml_sys.predict_single(input_sample)
+        if ml_sys.is_trained
+        else {"error": "Trainable model unavailable for the selected dataset."}
+    )
     if "rejection_probability" in pred_res:
         p1, p2, p3 = st.columns(3)
         p1.metric("Rejection Probability", f"{pred_res['rejection_probability']}%")
         p2.metric("Risk Classification", pred_res['risk_tier'])
         if "predicted_production_yds" in pred_res:
             p3.metric("Est. Production", f"{pred_res['predicted_production_yds']:,.0f} yds")
+
+    recommendations = generate_recommendations(
+        sim_results,
+        sust_results,
+        ml_context=pred_res,
+        feature_importances=ml_sys.feature_importances_clf,
+    )
 
 # =========================================================
 # TAB 3: SIMPY DIGITAL TWIN
@@ -1050,6 +1105,7 @@ with tab_recs:
                     <span class="{p_class}">{rec['priority']}</span>
                 </div>
                 <p style="margin:0 0 10px 0; font-size:13px; opacity:0.8;">{rec['detail']}</p>
+                <p style="margin:0 0 10px 0; font-size:12px; opacity:0.7;"><strong>Supporting metric:</strong> {rec.get('supporting_metric', 'Current simulation output')}</p>
                 <span class="eco-badge">Expected: {rec['expected_gain']}</span>
             </div>
             """,
@@ -1088,6 +1144,10 @@ with tab_ai:
         "total_carbon_kg_co2e": sust_results["total_carbon_kg_co2e"],
         "eco_score": sust_results["eco_score"],
         "ml_accuracy": f"{ml_sys.clf_metrics.get('accuracy', 0)*100:.1f}%" if ml_sys.clf_metrics else "N/A",
+        "ml_rejection_probability": pred_res.get("rejection_probability", "N/A"),
+        "ml_predicted_production_yds": pred_res.get("predicted_production_yds", "N/A"),
+        "ml_top_features": list(ml_sys.feature_importances_clf.items())[:5],
+        "sustainability_status": "estimated from simulation assumptions",
     }
 
     user_ai_query = st.text_input(

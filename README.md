@@ -1,115 +1,80 @@
-# 🧵 AI-Powered Digital Twin for Sustainable Textile Manufacturing
+# AI-Powered Digital Twin for Sustainable Textile Manufacturing
 
-A comprehensive Streamlit dashboard integrating real textile weaving data, Machine Learning, SimPy discrete-event simulation, sustainability analysis, and Gemini 3.6 Flash AI copilot.
+This existing Streamlit application combines a real textile weaving dataset, leakage-audited Random Forest models, a SimPy discrete-event digital twin, estimated sustainability indicators, recommendations, and an optional Gemini copilot.
 
-![Python](https://img.shields.io/badge/Python-3.10+-blue?logo=python)
-![Streamlit](https://img.shields.io/badge/Streamlit-1.30+-red?logo=streamlit)
-![License](https://img.shields.io/badge/License-MIT-green)
+## Problem and objectives
 
----
+Textile production moves through Warping, Sizing, Weaving, and Quality Inspection. The dashboard helps inspect production records, estimate rejection risk and production volume, simulate factory flow, compare what-if settings, identify congestion, and assess resource indicators.
 
-## 🎯 Problem Statement
+## Dataset and preprocessing
 
-Textile manufacturing involves complex multi-stage processes (Warping → Sizing → Weaving → Inspection) where inefficiencies lead to high rejection rates, energy waste, and carbon emissions. This project creates an **AI-powered Digital Twin** to simulate, predict, and optimize textile production processes.
+The primary dataset is `data/weaving_dataset_full.csv` with 121,148 raw records. `data/weaving_rejection_dataset.csv` remains an optional secondary dataset.
 
-## 🏗️ Architecture
+The reproducible preprocessing pipeline removes the export index, removes rows marked `TOTAL` as aggregate rows, normalizes `na`/`n/a`/`null`/blank sentinels, removes exact duplicate source rows, converts numeric fields, imputes missing numeric values with medians and categorical values with modes, and creates textile features such as cover factors and total fabric density.
 
-```
-Raw Material → Warping → Sizing → Weaving → Quality Inspection → Finished Product
-```
+Current primary-dataset accounting is 121,148 raw rows to 99,126 analytical rows: 22,022 aggregate rows removed, 15,218 missing sentinels normalized and imputed, and zero exact duplicates or invalid rows removed. The dashboard exposes this audit trail.
 
-| Module | Technology | Purpose |
-|--------|-----------|---------|
-| Data Analysis | Pandas, Plotly | EDA, correlation, distribution analysis |
-| ML Prediction | Scikit-learn RandomForest | Rejection classification + production regression |
-| Digital Twin | SimPy | Discrete-event factory simulation |
-| Sustainability | Custom formulas | Energy, water, waste, carbon estimation |
-| Eco Score | Weighted composite | 4-pillar sustainability score (0-100) |
-| AI Copilot | Gemini 3.6 Flash | Process intelligence & recommendations |
+## Machine learning methodology
 
-## 📊 Dataset
+The classification target is `Has_Rejection`, derived from `Rej_and_cut_Piece > 0` in the full dataset. The regression target is `Total_pdn_per_order`. The train/test split happens before fitting separate `StandardScaler` instances. Random Forest models use a fixed random seed; the classifier uses class balancing because positive rejection cases are rare.
 
-[Textile Weaving Dataset](https://data.mendeley.com/datasets/6mwgj7tms3/2) from Mendeley Data (auto-downloaded on first run):
+Target-derived and post-outcome fields are excluded, including rejection fields, production targets, `Total_pdn_m/c`, and `Rec_Beam_length(yds)`. Required material and beam quantities remain only as planning features under the assumption that they are available before production.
 
-- `weaving_rejection_dataset.csv` — 22,010 records, 14 columns (ML training)
-- `weaving_dataset_full.csv` — 121,148 records, 19 columns (detailed analysis)
+Measured deterministic holdout results from the current run:
 
-## 🚀 Quick Start
+| Model | Metrics |
+|---|---|
+| Rejection classifier | Accuracy 97.92%, precision 6.42%, recall 87.50%, F1 11.97% |
+| Production regressor | MAE 1,220.11 yards, RMSE 17,306.51 yards, R2 0.017 |
 
-### Local Development
+The precision and regression score are limitations of the available data, not metrics optimized or fabricated for presentation. Model artifacts include dataset name and fingerprint, feature list, preprocessing version, timestamp, targets, and metrics. A changed dataset invalidates the old artifact.
+
+## Digital twin and what-if simulation
+
+The SimPy model preserves the flow `Raw Material -> Warping -> Sizing -> Weaving -> Quality Inspection -> Finished Fabric`. It records batches, processing and waiting time, queues, utilization, event logs, production, rejection, and bottlenecks. What-if simulation compares baseline and altered loom count, weaving time, defect factor, and sizing capacity using the same measured outputs.
+
+ML predictions are decision-support signals passed to recommendations and AI context. They are not treated as causal inputs to the SimPy model. Simulation outputs remain simulation results.
+
+## Sustainability and Eco Score
+
+Energy, water, material waste, and carbon are **estimated indicators**, not measurements from the dataset. The assumptions are:
+
+- Energy: stage machine power multiplied by active hours plus 15% standby power during idle hours.
+- Water: total produced yards multiplied by 1.2 L/yard.
+- Waste: rejected yards plus 2% selvage trim, multiplied by 0.18 kg/yard fabric weight.
+- Carbon: energy multiplied by 0.52 kg CO2e/kWh plus 0.0003 kg CO2e/L water processing.
+
+Eco Score is a 0-100 calculation with four equal components worth 25 points each: Energy Efficiency, Waste Minimization, Carbon Intensity, and Throughput Health. It is not an ML prediction.
+
+## Recommendations and AI Copilot
+
+Recommendations use current utilization, queue delay, rejection, energy intensity, waste, Eco Score, live ML predictions, and top model-associated features. Language is intentionally non-causal: model-associated, contributing factor, or simulation suggests. Gemini receives current telemetry, ML outputs, model context, and the estimated-data status. Without an API key or when Gemini is unavailable, the offline expert mode remains available.
+
+## Technology and architecture
+
+- Streamlit dashboard: `app.py`
+- Pandas and NumPy: loading, cleaning, feature engineering
+- Scikit-learn: Random Forest classification and regression
+- SimPy: discrete-event simulation
+- Plotly: dashboard charts
+- Joblib: model persistence and metadata
+- Gemini SDKs: optional AI copilot with offline fallback
+
+See [AUDIT.md](AUDIT.md) for the requirement-by-requirement audit and leakage decision.
+
+## Run locally
 
 ```bash
-# Clone the repository
-git clone https://github.com/YOUR_USERNAME/textile-digital-twin.git
-cd textile-digital-twin
-
-# Install dependencies
 pip install -r requirements.txt
-
-# Run the app (datasets auto-download on first run)
-streamlit run app.py
+python -m streamlit run app.py
 ```
 
-### Deploy to Streamlit Cloud (Free)
+Train/retrain models from the ML Prediction tab. The end-to-end checks can be run with:
 
-1. Push this repo to GitHub
-2. Go to [share.streamlit.io](https://share.streamlit.io)
-3. Connect your GitHub repo
-4. Set main file path to `app.py`
-5. Click **Deploy** — done!
-
-## 📁 Project Structure
-
-```
-textile-digital-twin/
-├── app.py                    # Main Streamlit dashboard
-├── setup_data.py             # Auto-download datasets
-├── requirements.txt          # Python dependencies
-├── README.md                 # Documentation
-├── .gitignore
-├── data/                     # Auto-populated with CSV datasets
-├── models/                   # ML model artifacts (auto-generated)
-└── src/
-    ├── __init__.py
-    ├── data_preprocessing.py # Data loading, cleaning, feature engineering
-    ├── ml_model.py           # RandomForest Classifier + Regressor
-    ├── digital_twin.py       # SimPy discrete-event simulation
-    ├── sustainability.py     # Energy, Water, Waste, Carbon, Eco Score
-    ├── recommendations.py    # Bottleneck detection + rule-based advice
-    └── gemini_assistant.py   # Gemini 3.6 Flash AI with offline fallback
+```bash
+.venv\Scripts\python.exe test_pipeline.py
 ```
 
-## 🎨 Dashboard Tabs
+## Limitations and future work
 
-1. **📊 Dataset Overview** — EDA, statistics, EPI/PPI scatter, correlation heatmap
-2. **🤖 ML Prediction** — Confusion matrix, feature importance, live predictor
-3. **🏭 Digital Twin** — Machine utilization, queue delays, event log
-4. **🔄 What-If Simulation** — Side-by-side scenario comparison
-5. **🌿 Sustainability** — Energy, water, waste, carbon gauge + Eco Score
-6. **⚡ Bottlenecks** — Auto-detected with actionable recommendations
-7. **💬 AI Copilot** — Gemini 3.6 Flash with live factory telemetry
-
-## 🔑 Gemini API Key
-
-The AI Copilot tab uses Google Gemini 3.6 Flash. Enter your API key in the sidebar. Works without a key using offline expert mode.
-
-## 📈 ML Performance
-
-| Model | Metric | Score |
-|-------|--------|-------|
-| RandomForestClassifier | Accuracy | 87.1% |
-| RandomForestClassifier | F1-Score | 90.9% |
-| RandomForestRegressor | R² Score | 0.985 |
-
-## 🧰 Technologies
-
-- **Streamlit** — Interactive dashboard
-- **SimPy** — Discrete-event simulation
-- **Scikit-learn** — Machine learning
-- **Plotly** — Interactive visualizations
-- **Pandas / NumPy** — Data processing
-- **Gemini 3.6 Flash** — AI process intelligence
-
-## 📄 License
-
-MIT License — Free for educational and research use.
+The digital twin is a calibrated software simulation, not a real-time IoT system. Sustainability values are engineering estimates, not measured energy, water, or carbon. The current feature set does not establish causal defect drivers, and the regression model has weak holdout explanatory power. Future work should add time/order-aware validation, richer pre-production features, measured utility data, failure scenarios, and production feedback from deployed operations.
